@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Board Game Shelf</title>
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="icons/site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: retailer band → sticky filter bar → uniform grid of square box-art cards */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --ink:#18212b; --muted:#5d6b7a; --line:#d5dce4; --art:#e4e8ed;
+  --accent:#1f5fd1; --accent-ink:#ffffff; --ret:#e8620c; --ret-ink:#ffffff;
+  --good:#1d7a46; --good-bg:#e1f3e8;
+  --display:"Bricolage Grotesque",system-ui,sans-serif; --body:"Inter",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#11161c; --surface:#1a222b; --ink:#e7edf3; --muted:#93a1b0; --line:#2b3642; --art:#232d38;
+  --accent:#6f9bff; --accent-ink:#0b1220; --good:#6fd49b; --good-bg:#16301f; color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--body)}
+.band{background:var(--ret);color:var(--ret-ink);padding:14px max(16px,4vw);display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center}
+.band .lbl{font:600 11px var(--body);letter-spacing:.08em;text-transform:uppercase;opacity:.85}
+.band h1{font:800 clamp(24px,3.4vw,34px)/1.1 var(--display);margin:0}
+.band select{font:600 14px var(--body);border:0;border-radius:8px;padding:8px 10px;background:rgba(255,255,255,.95);color:#18212b}
+.band .meta{margin-left:auto;font-size:12px;opacity:.9;text-align:right}
+.bar{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:10px max(16px,4vw);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bar input[type=search],.bar select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 9px;min-width:0}
+.bar input[type=search]{flex:1 1 180px}
+.bar label{display:flex;gap:6px;align-items:center;color:var(--muted);white-space:nowrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:600 13px var(--body);border:0;background:var(--surface);color:var(--ink);padding:7px 10px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.combo{position:relative;flex:0 1 220px;min-width:0}
+.combo>button{width:100%;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 28px 7px 9px;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative}
+.combo>button::after{content:"";position:absolute;right:11px;top:50%;width:6px;height:6px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg)}
+.combo>button.on{border-color:var(--accent);color:var(--accent)}
+.combo .pop{position:absolute;z-index:20;top:calc(100% + 4px);left:0;width:max(100%,280px);max-width:calc(100vw - 32px);background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:8px}
+.combo .pop input{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:7px 9px;margin-bottom:6px}
+.combo ul{list-style:none;margin:0;padding:0;max-height:320px;overflow:auto}
+.combo li{display:flex;justify-content:space-between;gap:10px;padding:6px 8px;border-radius:6px;cursor:pointer}
+.combo li span:last-child{color:var(--muted);font-variant-numeric:tabular-nums}
+.combo li.act,.combo li:hover{background:var(--art)}
+.combo li.sel{color:var(--accent);font-weight:600}
+.combo .nores{padding:8px;color:var(--muted)}
+.count{color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{padding:18px max(16px,4vw) 24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:grid;grid-template-rows:auto 1fr;min-width:0}.card>*{min-width:0}
+.art{position:relative;aspect-ratio:1/1;max-width:100%;background:var(--art);overflow:hidden;display:block}
+.art .bk{position:absolute;inset:-12%;width:124%;height:124%;object-fit:cover;filter:blur(18px) saturate(1.2);opacity:.55}
+.art img{color:transparent;font-size:0}
+.art .fg{position:absolute;inset:6%;width:88%;height:88%;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.25))}
+.art.noimg .bk{display:none}
+.tag{position:absolute;font:600 11px var(--body);letter-spacing:.04em;padding:4px 8px;border-radius:6px}
+.disc{top:10px;right:10px;font-family:var(--mono);background:var(--accent);color:var(--accent-ink)}
+.rtag{left:10px;bottom:10px;background:var(--ret);color:var(--ret-ink);text-transform:uppercase}
+.body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:5px}
+.brand{font:600 11px var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.name{font:600 15px/1.3em var(--display);margin:0;height:2.6em;flex:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.name a{color:inherit;text-decoration:none}.name a:hover{text-decoration:underline}
+.price{display:flex;gap:10px;align-items:baseline;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
+.price .main{font-size:18px}.alt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted);font-size:12px;font-family:var(--mono);font-variant-numeric:tabular-nums;margin-top:-4px}.price .rrp{color:var(--muted);font-size:12px;text-decoration:line-through}
+.others{font-size:12px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.bgg{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;flex:none;font-size:12.5px;color:var(--muted);white-space:nowrap}
+.bgg b{color:var(--ink);font-variant-numeric:tabular-nums}
+.rate{padding:0 6px;border-radius:5px;background:var(--good-bg);color:var(--good);font-weight:600}
+.mech{display:flex;flex-wrap:wrap;align-content:flex-start;gap:4px;min-height:66px;margin:2px 0 4px;flex:1 0 auto}
+.mech button{font:500 11px/1.3 var(--body);color:var(--ink);background:var(--art);border:1px solid var(--line);border-radius:5px;padding:2px 6px;cursor:pointer;text-align:left}
+.mech button:hover{border-color:var(--accent);color:var(--accent)}
+.mech .none{font-size:12px;color:var(--muted)}
+.mech .x{display:none}   /* tags beyond the first 5: kept for the overlay */
+.mech .mx{color:var(--accent);background:transparent;border-color:var(--accent);font-weight:600}
+/* "+N more" overlay: sits on top of the card, so the grid never reflows */
+.card{position:relative}
+.mpop{position:absolute;z-index:4;left:6px;right:6px;bottom:6px;max-height:calc(100% - 12px);display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--accent);border-radius:9px;box-shadow:0 10px 28px rgba(0,0,0,.22)}
+.mpop .mhead{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);font:600 12px var(--body);color:var(--muted)}
+.mpop .mclose{font:600 12px var(--body);color:var(--accent);background:none;border:0;padding:2px 4px;cursor:pointer}
+.mpop .mlist{display:flex;flex-wrap:wrap;align-content:flex-start;gap:4px;padding:8px 10px 10px;overflow:auto;overscroll-behavior:contain}
+.mpop .mlist button{font:500 11px/1.3 var(--body);color:var(--ink);background:var(--art);border:1px solid var(--line);border-radius:5px;padding:2px 6px;cursor:pointer;text-align:left}
+.mpop .mlist button:hover{border-color:var(--accent);color:var(--accent)}
+.links{display:flex;gap:6px;margin-top:auto;flex:none}
+.links a{flex:1;text-align:center;text-decoration:none;font:500 13px var(--body);padding:6px 6px;border-radius:7px;border:1px solid var(--line);color:var(--ink)}
+.links a.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.more{display:flex;justify-content:center;padding:0 16px 48px}
+.more span{color:var(--muted);font-size:13px}
+.empty{grid-column:1/-1;text-align:center;color:var(--muted);padding:40px 0}
+@media (max-width:560px){.band .meta{margin-left:0;text-align:left}}
+/* Motion. Page transition: the clicked card's box art morphs into the game page's (same-origin http(s) only;
+   ignored when opened from disk or by browsers without support). Shimmer while box art loads, then fade in. */
+@view-transition{navigation:auto}
+::view-transition-group(*){animation-duration:.3s;animation-timing-function:cubic-bezier(.2,.8,.2,1)}
+.art::before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,color-mix(in srgb,var(--surface) 60%,transparent) 50%,transparent 70%) var(--art);background-size:200% 100%;animation:shimmer 1.3s linear infinite}
+.art.ld::before,.art.noimg::before{display:none}
+.art .fg,.art .bk{transition:opacity .3s}
+.art:not(.ld) .fg,.art:not(.ld) .bk{opacity:0}
+@keyframes shimmer{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){@view-transition{navigation:none} .art::before{animation:none} .art .fg,.art .bk{transition:none}}
+/* Filters: desktop = inline in the bar (unchanged); phone = slim bar (search + Filters) + bottom sheet */
+.fx{display:contents}
+.fbtn,.fxhead,.fxl,.fdone,.scrim{display:none}
+@media (max-width:600px){
+  .bar{flex-wrap:nowrap;padding:8px 16px;backdrop-filter:none;background:var(--bg);transition:transform .25s ease}
+  .bar.hide{transform:translateY(-100%)}
+  .bar .count{display:none}
+  .fbtn{display:inline-flex;align-items:center;gap:6px;flex:none;font:600 13px var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 11px;cursor:pointer}
+  .fbtn.on{border-color:var(--accent);color:var(--accent)}
+  .scrim:not([hidden]){display:block;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:29}
+  .fx{display:flex;flex-direction:column;gap:8px;position:fixed;left:0;right:0;bottom:0;z-index:30;max-height:85vh;overflow:auto;overscroll-behavior:contain;
+      background:var(--surface);border-radius:16px 16px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.2);padding:14px 16px calc(14px + env(safe-area-inset-bottom));
+      transform:translateY(105%);visibility:hidden;transition:transform .25s ease,visibility 0s .25s}
+  .fx.open{transform:none;visibility:visible;transition:transform .25s ease}
+  .fxhead{display:flex;justify-content:space-between;align-items:center;font:700 16px var(--display);margin-bottom:2px}
+  .fxhead button{font:600 13px var(--body);color:var(--accent);background:none;border:0;padding:4px;cursor:pointer}
+  .fxl{display:block;font:600 11px var(--body);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+  .fx .combo,.fx select{flex:none;width:100%}
+  .fx select,.fx .combo>button{padding:10px 12px}
+  .fx .combo .pop{position:static;width:100%;max-width:none;box-shadow:none;margin-top:6px}
+  .fx .seg{display:flex}.fx .seg button{flex:1;padding:10px 6px}
+  .fx label{padding:4px 0}
+  .fdone{display:block;margin-top:8px;font:600 15px var(--body);background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:13px;cursor:pointer}
+  /* 2 compact cards per row: the card opens the game page (Buy, Details, BGG live there) */
+  main{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px 16px 24px}
+  .body{padding:8px 9px 10px;gap:3px}
+  .brand{font-size:10px}
+  .name{font-size:13.5px}
+  .price{gap:6px}.price .main{font-size:15px}
+  .alt{font-size:10.5px;margin-top:-2px}
+  .others,.mech,.links{display:none}
+  .bgg{font-size:11px;gap:2px 6px}.bgg>span:nth-child(n+3){display:none}
+  .tag{font-size:10px;padding:3px 6px}
+}
+@media (max-width:600px) and (prefers-reduced-motion:reduce){.bar,.fx,.fx.open{transition:none}}
+/* Today's picks: one row of cards, tabs pick the list (new / gems / deals / hot); hidden while searching or filtering */
+.picks{padding:16px max(16px,4vw) 4px}
+.picks[hidden]{display:none}
+.phead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-bottom:10px}
+.phead h2{font:800 20px/1.2 var(--display);margin:0}
+.ptabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;min-width:0}
+.ptabs button{font:600 13px var(--body);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer;white-space:nowrap}
+.ptabs button[aria-selected=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.ptabs span{opacity:.65;font-variant-numeric:tabular-nums}
+.plink{margin-left:auto;font:600 13px var(--body);color:var(--accent);text-decoration:none;white-space:nowrap}.plink:hover{text-decoration:underline}
+.strip{display:grid;grid-auto-flow:column;grid-auto-columns:176px;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 12px;overscroll-behavior-x:contain}
+.pc{scroll-snap-align:start;display:flex;flex-direction:column;gap:3px;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none;position:relative;min-width:0}
+.pc:hover{border-color:var(--accent)}
+.pc .pa{aspect-ratio:1/1;background:var(--art);display:block;position:relative;margin-bottom:5px}
+.pc img{position:absolute;inset:6%;width:88%;height:88%;object-fit:contain;color:transparent}
+.pc .pn{font:600 13.5px/1.3em var(--display);padding:0 10px;height:2.6em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.pc .pp{font:500 15px var(--mono);font-variant-numeric:tabular-nums;padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc .pp small{color:var(--muted);font-size:11px}
+.pc .pw{font-size:11.5px;line-height:1.3em;color:var(--good);padding:0 10px 10px;height:calc(2.6em + 10px);overflow:hidden}
+.pc .tag{top:8px;right:8px}
+@media (max-width:600px){
+  .picks{padding:12px 16px 0}
+  .phead h2{font-size:18px}
+  .ptabs{order:3;flex:1 1 100%;margin:0 -16px;padding:0 16px}
+  .strip{grid-auto-columns:calc((100vw - 42px)/2.3);gap:10px;margin:0 -16px;padding:2px 16px 12px;scroll-padding:0 16px}
+  .pc .pn{font-size:13px}.pc .pp{font-size:14px}
+}
+</style>
+<script defer src="https://cdn.jsdelivr.net/npm/@leeoniya/ufuzzy@1.0.14/dist/uFuzzy.iife.min.js" onload="window.onFuzzy&&onFuzzy()"></script>
+<script>
+/* Price views (owner, 27 Nov 2026). Owner's copy: GBP + KWD at the mid-market rate (what he really pays, paying in GBP).
+   Public site: KWD only; a shop that prices in KD itself (MM via Global-e) shows its own KD (rate x GBP, rounded up per range).
+   publish_site.py turns PUBLIC_SITE on in the public copy only. */
+window.PUBLIC_SITE=true;
+window.kdShelf=function(gbp,shop,M){var t=window.PUBLIC_SITE&&M.shopKd&&M.shopKd[shop];if(!t)return gbp*M.rate;
+  var x=Math.round(gbp*t.rate*1e6)/1e6,st=(t.steps.find(function(s){return s[0]<=x&&x<s[1];})||[0,0,1])[2];return Math.ceil(x/st-1e-9)*st;};
+</script>
+</head>
+<body>
+<div class="band" id="band">
+  <div><div class="lbl">Viewing</div><h1 id="who">Magic Madhouse</h1></div>
+  <select id="retailer" aria-label="Retailer"></select>
+  <div class="meta" id="meta"></div>
+</div>
+<section class="picks" id="picks" aria-labelledby="ptitle" hidden>
+  <div class="phead"><h2 id="ptitle">Today's picks</h2><div class="ptabs" id="ptabs" role="tablist" aria-label="Pick lists"></div><a class="plink" href="picks.html">Past picks &amp; BGG hot chart →</a></div>
+  <div class="strip" id="strip" role="tabpanel"></div>
+</section>
+<!-- picks render before the big games.js arrives; this small file holds everything they need -->
+<script src="showcase.js?v=202611280627"></script>
+<script>
+(function(){const S=window.SHOWCASE, sec=document.getElementById("picks"); if(!S) return;
+  const tabs=document.getElementById("ptabs"), strip=document.getElementById("strip");
+  const KINDS=[["new","New arrivals"],["gem","Hidden gems"],["deal","Deals"],["hot","Hot on BGG"]];
+  const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const SHOP=/\/\/cdn\.shopify\.com\//, sized=(u,w)=>u&&SHOP.test(u)?u+(u.includes("?")?"&":"?")+"width="+w:(u||"");
+  const PUB=window.PUBLIC_SITE===true;
+  let view=S.retailers[0].name, kind="new", cur=PUB?"KWD":"GBP", off=false;
+  const kd=(g,r)=>`KD ${window.kdShelf(g,r,S).toFixed(3)}`;
+  const money=(g,r)=>PUB?kd(g,r):cur==="GBP"?`£${g.toFixed(2)} <small>≈ ${kd(g,r)}</small>`:`${kd(g,r)} <small>≈ £${g.toFixed(2)}</small>`;
+  const card=c=>{const col=(S.retailers.find(r=>r.name===c.r)||{}).color;
+    return `<a class="pc" href="game.html?id=${encodeURIComponent(c.id)}" title="${esc(c.n)}"><span class="pa">${c.img?`<img src="${esc(sized(c.img,320))}" alt="${esc(c.n)} box art" loading="lazy" decoding="async" onerror="this.remove()">`:""}${c.disc>0?`<span class="tag disc">−${c.disc}%</span>`:""}${view==="__best__"?`<span class="tag rtag" style="background:${col}">${esc(c.r)}</span>`:""}</span>
+      <span class="pn">${esc(c.n)}</span><span class="pp">${money(c.gbp,c.r)}</span><span class="pw">${esc(c.why)}</span></a>`;};
+  function draw(){const cards=S.views[view]||[], has=KINDS.filter(([k])=>cards.some(c=>c.k===k));
+    if(!has.some(([k])=>k===kind)) kind=has.length?has[0][0]:"new";
+    tabs.innerHTML=has.map(([k,t])=>`<button type="button" role="tab" data-k="${k}" aria-selected="${k===kind}">${t} <span>${cards.filter(c=>c.k===k).length}</span></button>`).join("");
+    strip.innerHTML=cards.filter(c=>c.k===kind).map(card).join(""); strip.scrollLeft=0;
+    sec.hidden=off||!cards.length;}
+  tabs.addEventListener("click",e=>{const b=e.target.closest("button[data-k]"); if(b){kind=b.dataset.k; draw();}});
+  window.PICKS={set(v,c){view=v; cur=c; draw();}, hide(h){if(off!==h){off=h; sec.hidden=off||!(S.views[view]||[]).length;}}};
+  draw();})();
+</script>
+<div class="bar" id="bar">
+  <input id="q" type="search" placeholder="Search games" aria-label="Search games">
+  <button type="button" class="fbtn" id="fbtn" aria-haspopup="dialog" aria-controls="fx" aria-expanded="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Filters<span id="fcount"></span></button>
+  <div class="scrim" id="scrim" hidden></div>
+  <!-- desktop: these controls sit inline in the bar (display:contents); phone: they become the bottom sheet -->
+  <div class="fx" id="fx" role="dialog" aria-label="Filters and sort">
+  <div class="fxhead"><span>Filters and sort</span><button type="button" id="freset">Reset</button></div>
+  <span class="fxl">Brand and mechanic</span>
+  <div class="combo" id="brand" data-all="All brands"></div>
+  <div class="combo" id="mech" data-all="All mechanics"></div>
+  <span class="fxl">Rating, discount and sort</span>
+  <select id="minr" aria-label="Minimum BGG rating"><option value="0">Any rating</option><option value="6">BGG 6+</option><option value="7">BGG 7+</option><option value="7.5">BGG 7.5+</option><option value="8">BGG 8+</option></select>
+  <select id="disc" aria-label="Minimum discount"><option value="0">Any discount</option><option value="10">10%+ off RRP</option><option value="20">20%+ off RRP</option><option value="30">30%+ off RRP</option><option value="40">40%+ off RRP</option></select>
+  <select id="sort" aria-label="Sort">
+    <option value="rel">Best match (search)</option><option value="new" selected>Newest listings</option><option value="year">Newest games (BGG year)</option><option value="name">Name A–Z</option>
+    <option value="pa">Price low → high</option><option value="pd">Price high → low</option>
+    <option value="dd">Biggest discount vs RRP</option><option value="rd">BGG rank (Geek rating)</option><option value="vd">Most BGG votes</option>
+  </select>
+  <span class="fxl">Type</span>
+  <div class="seg" id="types" role="group" aria-label="Type"><button data-t="ge" aria-pressed="true" title="Base games and expansions (no accessories)">Games &amp; exp.</button><button data-t="g" aria-pressed="false">Base games</button><button data-t="e" aria-pressed="false">Expansions</button><button data-t="a" aria-pressed="false" title="Sleeves, inserts, dice sets, miniatures, RPG books and other non-games">Extras</button></div>
+  <label><input id="games" type="checkbox"> On BGG only</label>
+  <span class="fxl">Currency</span>
+  <div class="seg" role="group" aria-label="Currency" id="curseg"><button data-c="GBP" aria-pressed="true">£ GBP</button><button data-c="KWD" aria-pressed="false">KD KWD</button></div>
+  <button type="button" class="fdone" id="fdone">Show games</button>
+  </div>
+  <span class="count" id="count"></span>
+</div>
+<main id="grid"></main>
+<div class="more" id="sentinel"><span id="more">Loading more…</span></div>
+<script src="games.js?v=202611280627"></script>
+<script>
+if(!window.GALLERY){document.getElementById("grid").innerHTML='<p class="empty">Game data (games.js) did not load. Keep games.js in the same folder as this page.</p>';throw new Error("games.js missing");}
+const META=GALLERY.meta; const RET=GALLERY.retailers; const DATA=GALLERY.games;
+const PUB=window.PUBLIC_SITE===true;
+const $=s=>document.querySelector(s); const PAGE=60; let shown=PAGE, cur=PUB?"KWD":"GBP";
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const kdN=(g,r)=>window.kdShelf(g,r,META), kwd=(g,r)=>kdN(g,r).toFixed(3);
+const pv=o=>PUB?kdN(o.gbp,o.r):o.gbp;
+const BEST="__best__";
+const TAGS=5;   // mechanics shown per card before "+N more"
+// Right-sized images: Shopify (Zatu) resizes on request and serves WebP automatically; other hosts are used as-is
+// (Magic Madhouse is already ~386x513; BGG fallback uses its thumbnail).
+const SHOP=/\/\/cdn\.shopify\.com\//;
+const sized=(u,w)=>u&&SHOP.test(u)?u+(u.includes("?")?"&":"?")+"width="+w:(u||"");
+// Cards offer 320/480 only: 800 px on 3x phones cost more than it adds. The blurred .bk uses the SAME srcset+sizes
+// so the browser reuses the one download instead of fetching a second image.
+const CARD_SIZES="(max-width:600px) 44vw, 280px";   // phones show 2 cards per row
+const srcset=(u,sizes)=>u&&SHOP.test(u)?`srcset="${[320,480].map(w=>esc(sized(u,w))+" "+w+"w").join(", ")}" sizes="${sizes}"`:"";
+// retailer selector
+const rs=$("#retailer"); RET.forEach(r=>rs.add(new Option(r.name,r.name)));
+if(RET.length>1) rs.add(new Option("Best price · all retailers",BEST));
+function offerFor(g){const r=rs.value; if(r===BEST) return g.offers.reduce((a,b)=>pv(b)<pv(a)?b:a); return g.offers.find(o=>o.r===r);}
+function makeCombo(el){let val="", opts=[], act=0; const all=el.dataset.all;
+  el.innerHTML=`<button type="button" aria-haspopup="listbox"></button><div class="pop" hidden><input type="search" placeholder="Type to filter…" aria-label="Filter ${all}"><ul role="listbox"></ul></div>`;
+  const btn=el.querySelector("button"), pop=el.querySelector(".pop"), inp=el.querySelector("input"), ul=el.querySelector("ul");
+  const label=()=>{btn.textContent=val||all; btn.classList.toggle("on",!!val);};
+  const list=()=>{const q=inp.value.toLowerCase().trim(); const items=[["",all,null],...opts.filter(([k])=>!q||k.toLowerCase().includes(q)).map(([k,c])=>[k,k,c])];
+    if(q) items.shift(); act=Math.min(act,items.length-1); el._items=items;
+    ul.innerHTML=items.length?items.map(([k,t,c],i)=>`<li role="option" data-i="${i}" class="${i===act?"act":""} ${k===val?"sel":""}"><span>${esc(t)}</span><span>${c??""}</span></li>`).join(""):'<li class="nores">No matches</li>';};
+  const choose=k=>{val=k; label(); close(); el.dispatchEvent(new Event("input",{bubbles:true}));};
+  const open=()=>{document.querySelectorAll(".combo .pop").forEach(p=>p.hidden=true); pop.hidden=false; inp.value=""; act=0; list(); inp.focus();};
+  const close=()=>{pop.hidden=true;};
+  btn.onclick=()=>pop.hidden?open():close();
+  inp.oninput=()=>{act=0; list();};
+  inp.onkeydown=e=>{const n=(el._items||[]).length; if(e.key==="ArrowDown"){act=Math.min(act+1,n-1);list();e.preventDefault();} else if(e.key==="ArrowUp"){act=Math.max(act-1,0);list();e.preventDefault();} else if(e.key==="Enter"){if(n) choose(el._items[act][0]); e.preventDefault();} else if(e.key==="Escape"){close();btn.focus();}};
+  ul.onclick=e=>{const li=e.target.closest("li[data-i]"); if(li) choose(el._items[+li.dataset.i][0]);};
+  document.addEventListener("click",e=>{if(!el.contains(e.target)) close();});
+  Object.defineProperty(el,"value",{get:()=>val,set:v=>{val=v||"";label();}});
+  el.setOptions=counts=>{opts=Object.keys(counts).sort((a,b)=>a.localeCompare(b)).map(k=>[k,counts[k]]); if(val&&!counts[val]) val=""; label();};
+  label();}
+makeCombo($("#brand")); makeCombo($("#mech")); let ty="ge";   // "ge" = games + expansions; accessories/non-games only under "Extras"
+const picks=window.PICKS||{set(){},hide(){}};
+// ---- search: exact text first, then fuzzy (uFuzzy: one typo per word, any word order), live as you type ----
+const fold=s=>s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+let HAY=null, UF=null;
+function search(q){const ql=fold(q), rank=new Map();
+  if(!HAY) HAY=DATA.map(g=>fold(g.name+(g.bn?" · "+g.bn:"")));
+  HAY.forEach((h,i)=>{const p=h.indexOf(ql); if(p===0||(p>0&&!/[a-z0-9]/.test(h[p-1]))) rank.set(i,0); else if(p>0) rank.set(i,1);});
+  if(window.uFuzzy&&ql.replace(/\s/g,"").length>=3){
+    UF=UF||new uFuzzy({intraMode:1, intraIns:1, intraSub:1, intraTrn:1, intraDel:1});
+    const [idxs,info,order]=UF.search(HAY,ql,1,800);
+    if(idxs){ if(order) order.forEach((oi,r)=>{const i=info.idx[oi]; if(!rank.has(i)) rank.set(i,2+r/1e4);});
+              else idxs.forEach(i=>{if(!rank.has(i)) rank.set(i,2);}); }}
+  return rank;}
+window.onFuzzy=()=>{if($("#q").value.trim()) render();};
+function fillSelect(el,counts){el.setOptions(counts);}
+function setRetailer(){const r=rs.value, info=RET.find(x=>x.name===r);
+  document.documentElement.style.setProperty("--ret",info?info.color:"#2f3b48");
+  $("#who").textContent=r===BEST?"Best price across retailers":r;
+  $("#meta").innerHTML=r===BEST?`${RET.length} retailers · cheapest in-stock offer per game`:`In stock · scraped ${esc(info.scraped)}<br>${!PUB?`£1 = KD ${META.rate} (${esc(META.rateSrc)}, ${esc(META.rateDate)})`:META.shopKd&&META.shopKd[r]?"Prices in KD as shown by the shop":`Charges in GBP; KD at £1 = KD ${META.rate} (${esc(META.rateDate)})`}`;
+  const pool=DATA.filter(g=>offerFor(g)); const bc={},mc={};
+  pool.forEach(g=>{const o=offerFor(g); bc[o.brand]=(bc[o.brand]||0)+1; (g.m||[]).forEach(m=>mc[m]=(mc[m]||0)+1)});
+  fillSelect($("#brand"),bc); fillSelect($("#mech"),mc); picks.set(r,cur); shown=PAGE; render();}
+function rows(){
+  const q=$("#q").value.trim(), br=$("#brand").value, me=$("#mech").value, mr=+$("#minr").value, md=+$("#disc").value, go=$("#games").checked, s=$("#sort").value;
+  const hit=q?search(q):null;
+  const out=[]; for(let i=0;i<DATA.length;i++){const g=DATA[i], o=offerFor(g); if(!o) continue;
+    if(br&&o.brand!==br) continue; if(me&&!(g.m||[]).includes(me)) continue; if(ty==="ge"?g.ty==="a":ty&&g.ty!==ty) continue; if(mr&&!(g.avg>=mr&&g.ur>=30)) continue;
+    if(md&&!(o.disc>=md)) continue; if(go&&!g.bgg) continue; if(hit&&!hit.has(i)) continue; out.push([g,o,i]);}
+  if(s==="rel"&&hit){out.sort((a,b)=>hit.get(a[2])-hit.get(b[2])||(b[0].ur||0)-(a[0].ur||0)); return out;}
+  const S={name:(a,b)=>a[0].name.localeCompare(b[0].name),pa:(a,b)=>pv(a[1])-pv(b[1]),pd:(a,b)=>pv(b[1])-pv(a[1]),dd:(a,b)=>(b[1].disc??-1)-(a[1].disc??-1),
+    rd:(a,b)=>(b[0].ba||0)-(a[0].ba||0)||(b[0].avg||0)-(a[0].avg||0),vd:(a,b)=>(b[0].ur||0)-(a[0].ur||0),new:(a,b)=>(b[1].ld||"").localeCompare(a[1].ld||"")||(b[0].y||0)-(a[0].y||0)||a[1].idx-b[1].idx,
+    year:(a,b)=>(b[0].y||0)-(a[0].y||0)||(b[1].ld||"").localeCompare(a[1].ld||"")||a[1].idx-b[1].idx}; out.sort(S[s==="rel"?"new":s]); return out;}
+function price(o){const g=`£${o.gbp.toFixed(2)}`, k=`KD ${kwd(o.gbp,o.r)}`; const rrp=o.rrp?(cur==="GBP"?`£${o.rrp.toFixed(2)}`:`KD ${kwd(o.rrp,o.r)}`):"";
+  if(PUB) return `<div class="price"><span class="main">${k}</span></div><div class="alt">${rrp?`RRP <s>${rrp}</s>`:"&nbsp;"}</div>`;
+  return `<div class="price"><span class="main">${cur==="GBP"?g:k}</span></div><div class="alt">≈ ${cur==="GBP"?k:g}${rrp?` · RRP <s>${rrp}</s>`:""}</div>`;}
+function card([g,o]){const nm=encodeURIComponent(g.name); const best=rs.value===BEST; const gp=`game.html?id=${encodeURIComponent(g.id)}`;
+  const imgs=[o.img,g.bth||g.bimg].filter(Boolean);   // BGG fallback: thumbnail, not the multi-MB original
+  return `<article class="card">
+    <a class="art" href="${gp}" data-imgs="${esc(imgs.join("|"))}" aria-label="${esc(g.name)}: details and price history">
+      <img class="bk" src="${esc(sized(imgs[0],480))}" ${srcset(imgs[0],CARD_SIZES)} alt="" loading="lazy" decoding="async" aria-hidden="true">
+      <img class="fg" src="${esc(sized(imgs[0],480))}" ${srcset(imgs[0],CARD_SIZES)} alt="${esc(g.name)} box art" loading="lazy" decoding="async">
+      ${o.disc>0?`<span class="tag disc">−${o.disc}%</span>`:""}
+      ${best?`<span class="tag rtag" style="background:${(RET.find(x=>x.name===o.r)||{}).color}" title="${esc(g.offers.slice().sort((a,b)=>pv(a)-pv(b)).map(x=>`${x.r}: ${PUB?"KD "+kwd(x.gbp,x.r):"£"+x.gbp.toFixed(2)}`).join(" · "))}">${esc(o.r)}${g.offers.length>1?` · +${g.offers.length-1}`:""}</span>`:""}
+    </a>
+    <div class="body">
+      <span class="brand">${esc(o.brand)}</span>
+      <h2 class="name" title="${esc(g.name)}"><a href="${gp}">${esc(g.name)}</a></h2>
+      ${price(o)}${best?`<div class="others">${g.offers.length>1?g.offers.filter(x=>x!==o).sort((a,b)=>pv(a)-pv(b)).map(x=>`${esc(x.r)} ${cur==="GBP"?"£"+x.gbp.toFixed(2):"KD "+kwd(x.gbp,x.r)}`).join(" · "):"Only at "+esc(o.r)}</div>`:""}
+      <div class="bgg">${g.bgg?`<span class="rate">${g.avg?g.avg.toFixed(1):"—"}</span><span><b>${g.ur?g.ur.toLocaleString():"0"}</b> votes</span>${g.w?`<span>wt <b>${g.w.toFixed(1)}</b></span>`:""}${g.pl?`<span>${esc(g.pl)}p</span>`:""}`:g.mv?"BGG version unconfirmed":"Not matched on BGG"}</div>
+      <div class="mech">${g.m&&g.m.length?g.m.map((m,i)=>`<button type="button" data-m="${esc(m)}"${i>=TAGS?' class="x"':""} title="Show only ${esc(m)}">${esc(m)}</button>`).join("")+(g.m.length>TAGS?`<button type="button" class="mx" aria-expanded="false" title="Show all ${g.m.length} mechanics">+${g.m.length-TAGS} more</button>`:""):`<span class="none">${g.bgg?"No mechanics listed":""}</span>`}</div>
+      <div class="links">
+        <a class="primary" href="${esc(o.link)}" target="_blank" rel="noopener">${best?"Buy":"Retailer"}</a>
+        <a href="${gp}" title="Price comparison and price history">Details</a>
+        <a href="${g.bgg?`https://boardgamegeek.com/boardgame/${g.bgg}`:`https://boardgamegeek.com/geeksearch.php?action=search&objecttype=boardgame&q=${nm}`}" target="_blank" rel="noopener">BGG</a>
+      </div>
+    </div></article>`;}
+// box art loaded -> stop shimmer, fade in
+document.addEventListener("load",e=>{const im=e.target; if(im instanceof HTMLImageElement&&im.classList.contains("fg")){const a=im.closest(".art"); if(a) a.classList.add("ld");}},true);
+// page transition: only the clicked card's art carries the shared name
+$("#grid").addEventListener("click",e=>{const l=e.target.closest('a[href^="game.html"]'); if(!l) return;
+  document.querySelectorAll(".art[style*=view-transition-name]").forEach(a=>a.style.viewTransitionName="");
+  const a=l.closest(".card").querySelector(".art"); if(a) a.style.viewTransitionName="art";},true);
+// image fallback chain: retailer → BGG → placeholder
+document.addEventListener("error",e=>{const im=e.target; if(!(im instanceof HTMLImageElement)) return; const a=im.closest(".art"); if(!a) return;
+  const list=a.dataset.imgs.split("|").filter(Boolean); const i=+(a.dataset.i||0)+1;
+  if(im.classList.contains("fg")){ if(i<list.length){a.dataset.i=i; a.querySelectorAll("img").forEach(x=>{x.removeAttribute("srcset"); x.src=sized(list[i],480);});} else {a.classList.add("noimg"); im.removeAttribute("srcset"); im.removeAttribute("src"); im.alt="No image";} }
+},true);
+let R=[];
+function render(){R=rows(); shown=Math.min(PAGE,R.length);
+  $("#grid").innerHTML=R.length?R.slice(0,shown).map(card).join(""):'<p class="empty">No games match these filters.</p>'; status();}
+function loadMore(){if(shown>=R.length) return; const next=R.slice(shown,shown+PAGE); shown+=next.length;
+  $("#grid").insertAdjacentHTML("beforeend",next.map(card).join("")); status();}
+function status(){const what=ty==="a"?"extras":"games"; $("#count").textContent=`${R.length.toLocaleString()} ${what}`; $("#more").hidden=shown>=R.length;
+  const n=[$("#brand").value,$("#mech").value,+$("#minr").value,+$("#disc").value,ty!=="ge",$("#games").checked].filter(Boolean).length;   // active filters (sort/currency excluded)
+  $("#fcount").textContent=n?` · ${n}`:""; $("#fbtn").classList.toggle("on",!!n);
+  picks.hide(!!n||!!$("#q").value.trim());
+  $("#fdone").textContent=R.length?`Show ${R.length.toLocaleString()} ${what}`:`No ${what} match: change filters`;}
+new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting)) loadMore();},{rootMargin:"1200px 0px"}).observe($("#sentinel"));
+["#brand","#mech","#minr","#disc","#games"].forEach(id=>$(id).addEventListener("input",()=>{shown=PAGE;render()}));
+let autoRel=false, qt=0;   // typing a search switches the default sort to "Best match"; clearing it switches back
+$("#sort").addEventListener("input",()=>{autoRel=false; shown=PAGE; render();});
+$("#q").addEventListener("input",()=>{const q=$("#q").value.trim(), so=$("#sort");
+  if(q&&so.value==="new"){so.value="rel"; autoRel=true;} else if(!q&&autoRel){so.value="new"; autoRel=false;}
+  clearTimeout(qt); qt=setTimeout(()=>{shown=PAGE; render();},90);});
+rs.addEventListener("input",setRetailer);
+document.querySelectorAll("#types button").forEach(b=>b.onclick=()=>{ty=b.dataset.t;document.querySelectorAll("#types button").forEach(x=>x.setAttribute("aria-pressed",x===b));render();});
+document.querySelectorAll(".seg:not(#types) button").forEach(b=>b.onclick=()=>{cur=b.dataset.c;document.querySelectorAll(".seg:not(#types) button").forEach(x=>x.setAttribute("aria-pressed",x===b));picks.set(rs.value,cur);const k=shown;render();while(shown<k&&shown<R.length)loadMore();});
+// "+N more": overlay with every mechanic, one card at a time; Esc / outside click / "Show less" closes it
+function closeTags(focus){const p=document.querySelector(".mpop"); if(!p) return; const mx=p.parentNode.querySelector(".mx");
+  p.remove(); if(mx){mx.setAttribute("aria-expanded","false"); if(focus) mx.focus({preventScroll:true});}}
+function openTags(mx){closeTags(); const card=mx.closest(".card"), all=[...mx.parentNode.querySelectorAll("button[data-m]")];
+  card.insertAdjacentHTML("beforeend",`<div class="mpop" role="dialog" aria-label="All mechanics"><div class="mhead"><span>All ${all.length} mechanics</span><button type="button" class="mclose">Show less</button></div><div class="mlist">${all.map(b=>`<button type="button" data-m="${esc(b.dataset.m)}" title="Show only ${esc(b.dataset.m)}">${esc(b.dataset.m)}</button>`).join("")}</div></div>`);
+  mx.setAttribute("aria-expanded","true"); card.querySelector(".mclose").focus({preventScroll:true});}
+document.addEventListener("keydown",e=>{if(e.key==="Escape") closeTags(true);});
+document.addEventListener("click",e=>{if(!e.target.closest(".mpop,.mx")) closeTags();});
+$("#grid").addEventListener("click",e=>{
+  const mx=e.target.closest(".mx"); if(mx){mx.getAttribute("aria-expanded")==="true"?closeTags(true):openTags(mx); return;}
+  if(e.target.closest(".mclose")){closeTags(true); return;}
+  const b=e.target.closest("button[data-m]"); if(!b) return; closeTags(); $("#mech").value=b.dataset.m; shown=PAGE; render(); window.scrollTo({top:0,behavior:"smooth"});});
+// ---- phone: filter sheet + bar that hides while scrolling down -------------------------
+const bar=$("#bar"), fx=$("#fx"), fbtn=$("#fbtn"), scrim=$("#scrim"), phone=matchMedia("(max-width:600px)");
+const isOpen=()=>fx.classList.contains("open");
+function openFx(){fx.classList.add("open"); scrim.hidden=false; fbtn.setAttribute("aria-expanded","true"); bar.classList.remove("hide");
+  document.documentElement.style.overflow="hidden"; $("#freset").focus({preventScroll:true});}
+function closeFx(){if(!isOpen()) return; fx.classList.remove("open"); scrim.hidden=true; fbtn.setAttribute("aria-expanded","false");
+  document.documentElement.style.overflow=""; document.querySelectorAll(".combo .pop").forEach(p=>p.hidden=true); fbtn.focus({preventScroll:true});}
+fbtn.onclick=()=>isOpen()?closeFx():openFx();
+scrim.onclick=closeFx; $("#fdone").onclick=closeFx;
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&isOpen()&&!e.target.closest(".combo")) closeFx();});
+phone.addEventListener("change",()=>{closeFx(); bar.classList.remove("hide");});
+$("#freset").onclick=()=>{$("#brand").value=""; $("#mech").value=""; $("#minr").value="0"; $("#disc").value="0"; $("#games").checked=false;
+  ty="ge"; document.querySelectorAll("#types button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.t==="ge"));
+  setRetailer();};
+let lastY=scrollY;
+addEventListener("scroll",()=>{const y=scrollY;
+  if(!phone.matches||isOpen()||document.activeElement===$("#q")){bar.classList.remove("hide"); lastY=y; return;}
+  if(Math.abs(y-lastY)<8) return;                                   // ignore jitter
+  bar.classList.toggle("hide", y>lastY && y>$("#grid").offsetTop);   // only once the feed is reached (picks sit above it)
+  lastY=y;},{passive:true});
+if(PUB) $("#curseg").remove();
+setRetailer();
+</script>
+<footer style="margin:32px auto 24px;padding:0 16px;max-width:900px;text-align:center;font-size:12px;color:var(--muted)">
+  <a href="https://boardgamegeek.com" target="_blank" rel="noopener" style="display:inline-block;background:#fff;border-radius:6px;padding:4px 8px"><img src="https://cf.geekdo-images.com/HZy35cmzmmyV9BarSuk6ug__small/img/gbE7sulIurZE_Tx8EQJXnZSKI6w=/fit-in/200x150/filters:strip_icc()/pic7779581.png" width="160" height="47" alt="Powered by BGG" loading="lazy"></a>
+  <p style="margin:8px 0 0">Game data, ratings and the hot list from <a href="https://boardgamegeek.com" target="_blank" rel="noopener" style="color:inherit">BoardGameGeek</a>. Prices from the shops' own sites, checked nightly. Not affiliated with BoardGameGeek or any shop. Non-commercial.</p>
+</footer>
+</body>
+</html>

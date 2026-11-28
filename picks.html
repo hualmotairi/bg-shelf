@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Past Picks</title>
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="icons/site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --ink:#18212b; --muted:#5d6b7a; --line:#d5dce4; --art:#e4e8ed;
+  --accent:#1f5fd1; --accent-ink:#ffffff; --good:#1d7a46; --good-bg:#e1f3e8; --bad:#b3261e;
+  --display:"Bricolage Grotesque",system-ui,sans-serif; --body:"Inter",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#11161c; --surface:#1a222b; --ink:#e7edf3; --muted:#93a1b0; --line:#2b3642; --art:#232d38;
+  --accent:#6f9bff; --accent-ink:#0b1220; --good:#6fd49b; --good-bg:#16301f; --bad:#ff8a80; color-scheme:dark}}
+[x-cloak]{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--body)}
+a{color:var(--accent)}
+header{background:var(--ink);color:var(--bg);padding:14px max(16px,4vw);display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
+header h1{font:800 clamp(22px,3.2vw,30px)/1.15 var(--display);margin:0}
+header a{color:inherit;font-weight:600;text-decoration:none;opacity:.9}header a:hover{text-decoration:underline}
+header .sub{margin-left:auto;font-size:12px;opacity:.8}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px max(16px,4vw);border-bottom:1px solid var(--line)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:600 13px var(--body);border:0;background:var(--surface);color:var(--ink);padding:8px 12px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 9px;max-width:100%}
+main{padding:16px max(16px,4vw) 48px}
+h2{font:800 18px var(--display);margin:18px 0 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.pc{display:flex;flex-direction:column;gap:3px;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none;min-width:0}
+.pc:hover{border-color:var(--accent)}
+.pa{aspect-ratio:1/1;background:var(--art);position:relative;margin-bottom:5px}
+.pa img{position:absolute;inset:6%;width:88%;height:88%;object-fit:contain;color:transparent}
+.pn{font:600 13.5px/1.3em var(--display);padding:0 10px;height:2.6em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.pw{font-size:11.5px;line-height:1.3em;color:var(--good);padding:0 10px}
+.pp{font:500 13px var(--mono);font-variant-numeric:tabular-nums;padding:0 10px 10px;color:var(--muted)}
+.pp b{color:var(--ink);font-weight:500}
+.gone{color:var(--muted);font-style:italic}
+.hot{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.hot li{display:grid;grid-template-columns:44px 56px minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.rk{font:800 20px var(--display);text-align:center;font-variant-numeric:tabular-nums}
+.mv{display:block;font:600 11px var(--mono);text-align:center}
+.up{color:var(--good)}.down{color:var(--bad)}.nw{color:var(--accent)}
+.th{width:56px;height:56px;object-fit:contain;background:var(--art);border-radius:6px}
+.hn{min-width:0}.hn a{color:inherit;font-weight:600;text-decoration:none}.hn a:hover{text-decoration:underline}
+.hn small{display:block;color:var(--muted)}
+.st{text-align:right;font-size:13px;white-space:nowrap}
+.st a{display:inline-block;font-weight:600;text-decoration:none;background:var(--good-bg);color:var(--good);border-radius:7px;padding:5px 9px}
+.st span{color:var(--muted)}
+.empty{color:var(--muted);padding:30px 0}
+.note{color:var(--muted);font-size:12.5px;margin-top:20px}
+@media (max-width:600px){
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .hot li{grid-template-columns:34px 44px minmax(0,1fr);gap:10px;padding:8px 10px}
+  .th{width:44px;height:44px}
+  .st{grid-column:3;text-align:left}
+  header .sub{margin-left:0}
+}
+</style>
+<script src="archive.js?v=202611280627"></script>
+<script>
+// Alpine.js component: all state for this page lives here; the HTML below binds to it with x-* attributes.
+function archive(){
+  const A=window.ARCHIVE||{days:{},hot:{},now:{},hotStock:{},retailers:[],rate:0};
+  const KINDS=[["new","New arrivals"],["gem","Hidden gems"],["deal","Deals"]];
+  const SHOP=/\/\/cdn\.shopify\.com\//;
+  const days=Object.keys(A.days).sort().reverse(), hdays=Object.keys(A.hot).sort().reverse();
+  return {
+    tab:location.hash==="#hot"?"hot":"picks", cur:window.PUBLIC_SITE===true?"KWD":"GBP", pub:window.PUBLIC_SITE===true, days, hdays, day:days[0], hday:hdays[0],
+    view:(A.retailers[0]||{}).name, retailers:A.retailers,
+    get views(){return [...A.retailers.map(r=>r.name),...(A.retailers.length>1?["__best__"]:[])];},
+    label(v){return v==="__best__"?"Best price · all retailers":v;},
+    nice(d){return d?new Date(d+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",year:"numeric"}):"";},
+    money(g,r){return this.cur==="GBP"?"£"+g.toFixed(2):"KD "+window.kdShelf(g,r,A).toFixed(3);},
+    img(u){return u&&SHOP.test(u)?u+(u.includes("?")?"&":"?")+"width=320":(u||"");},
+    get groups(){const cards=((A.days[this.day]||{})[this.view])||[];
+      return KINDS.map(([k,t])=>({k,t,cards:cards.filter(c=>c.k===k)})).filter(g=>g.cards.length);},
+    now(c){return A.now[c.id]||null;},
+    get hot(){const list=A.hot[this.hday]||[], prev=A.hot[this.hdays[this.hdays.indexOf(this.hday)+1]];
+      const was=prev?Object.fromEntries(prev.map(h=>[h.id,h.rank])):null;
+      return list.map(h=>({...h, move:!was?null:(was[h.id]==null?"new":was[h.id]-h.rank), stock:A.hotStock[h.id]||null}));},
+    get inStock(){return this.hot.filter(h=>h.stock).length;},
+    setTab(t){this.tab=t; history.replaceState(null,"",t==="hot"?"#hot":"#");}
+  };
+}
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+<script>
+/* Price views (owner, 27 Nov 2026). Owner's copy: GBP + KWD at the mid-market rate (what he really pays, paying in GBP).
+   Public site: KWD only; a shop that prices in KD itself (MM via Global-e) shows its own KD (rate x GBP, rounded up per range).
+   publish_site.py turns PUBLIC_SITE on in the public copy only. */
+window.PUBLIC_SITE=true;
+window.kdShelf=function(gbp,shop,M){var t=window.PUBLIC_SITE&&M.shopKd&&M.shopKd[shop];if(!t)return gbp*M.rate;
+  var x=Math.round(gbp*t.rate*1e6)/1e6,st=(t.steps.find(function(s){return s[0]<=x&&x<s[1];})||[0,0,1])[2];return Math.ceil(x/st-1e-9)*st;};
+</script>
+</head>
+<body x-data="archive()">
+<header>
+  <h1>Past picks &amp; BGG hot chart</h1>
+  <a href="boardgame_gallery.html">← Back to the gallery</a>
+  <span class="sub" x-text="'Prices now: as of ' + nice(days[0] || hdays[0])"></span>
+</header>
+<div class="bar">
+  <div class="seg" role="group" aria-label="View">
+    <button type="button" :aria-pressed="tab==='picks'" @click="setTab('picks')">Past picks</button>
+    <button type="button" :aria-pressed="tab==='hot'" @click="setTab('hot')">BGG hot chart</button>
+  </div>
+  <select x-show="tab==='picks'" x-model="day" aria-label="Day"><template x-for="d in days" :key="d"><option :value="d" x-text="nice(d)"></option></template></select>
+  <select x-show="tab==='picks'" x-model="view" aria-label="Retailer"><template x-for="v in views" :key="v"><option :value="v" x-text="label(v)"></option></template></select>
+  <select x-show="tab==='hot'" x-model="hday" aria-label="Day"><template x-for="d in hdays" :key="d"><option :value="d" x-text="nice(d)"></option></template></select>
+  <div class="seg" role="group" aria-label="Currency" x-show="!pub">
+    <button type="button" :aria-pressed="cur==='GBP'" @click="cur='GBP'">£ GBP</button>
+    <button type="button" :aria-pressed="cur==='KWD'" @click="cur='KWD'">KD KWD</button>
+  </div>
+</div>
+<main x-cloak>
+  <section x-show="tab==='picks'">
+    <p class="empty" x-show="!groups.length">No picks saved for this day.</p>
+    <template x-for="g in groups" :key="g.k">
+      <div>
+        <h2 x-text="g.t"></h2>
+        <div class="grid">
+          <template x-for="c in g.cards" :key="c.id">
+            <a class="pc" :href="'game.html?id='+encodeURIComponent(c.id)" :title="c.n">
+              <span class="pa"><img x-show="c.img" :src="img(c.img)" :alt="c.n+' box art'" loading="lazy" decoding="async"></span>
+              <span class="pn" x-text="c.n"></span>
+              <span class="pw" x-text="c.why"></span>
+              <span class="pp">
+                <span x-text="'Then '+money(c.gbp,c.r)+(view==='__best__'?' at '+c.r:'')"></span><br>
+                <template x-if="now(c)"><span>Now <b x-text="money(now(c).gbp,now(c).r)"></b> <span x-text="'at '+now(c).r"></span></span></template>
+                <template x-if="!now(c)"><span class="gone">Not in stock now</span></template>
+              </span>
+            </a>
+          </template>
+        </div>
+      </div>
+    </template>
+    <p class="note">Picks change every day: up to 5 new arrivals, 5 hidden gems (BGG 7.5+, 100–3,000 ratings, out 3+ years) and 5 deals per shop. Nothing repeats within 14 days. "Now" is the cheapest in-stock price at either shop.</p>
+  </section>
+  <section x-show="tab==='hot'">
+    <p class="empty" x-show="!hot.length">No hot list saved yet.</p>
+    <h2 x-show="hot.length" x-text="inStock+' of '+hot.length+' hot games are in stock at our shops'"></h2>
+    <ol class="hot">
+      <template x-for="h in hot" :key="h.id">
+        <li>
+          <span><span class="rk" x-text="h.rank"></span>
+            <span class="mv" :class="h.move==='new'?'nw':h.move>0?'up':h.move<0?'down':''" x-text="h.move==='new'?'new':h.move>0?'▲'+h.move:h.move<0?'▼'+(-h.move):h.move===0?'–':''"></span></span>
+          <img class="th" :src="h.th" alt="" loading="lazy">
+          <span class="hn"><a :href="'https://boardgamegeek.com/boardgame/'+h.id" target="_blank" rel="noopener" x-text="h.n"></a><small x-text="h.y"></small></span>
+          <span class="st">
+            <template x-if="h.stock"><a :href="'game.html?id='+encodeURIComponent(h.stock.id)" x-text="'In stock · '+money(h.stock.gbp,h.stock.r)+' at '+h.stock.r"></a></template>
+            <template x-if="!h.stock"><span>Not at our shops</span></template>
+          </span>
+        </li>
+      </template>
+    </ol>
+    <p class="note">Hot list from <a href="https://boardgamegeek.com/hotness" target="_blank" rel="noopener">BoardGameGeek</a>, saved once a day (history starts 24 Nov 2026). Arrows compare with the previous saved day. Stock and prices are from tonight's scrape.</p>
+  </section>
+</main>
+<footer style="margin:32px auto 24px;padding:0 16px;max-width:900px;text-align:center;font-size:12px;color:var(--muted)">
+  <a href="https://boardgamegeek.com" target="_blank" rel="noopener" style="display:inline-block;background:#fff;border-radius:6px;padding:4px 8px"><img src="https://cf.geekdo-images.com/HZy35cmzmmyV9BarSuk6ug__small/img/gbE7sulIurZE_Tx8EQJXnZSKI6w=/fit-in/200x150/filters:strip_icc()/pic7779581.png" width="160" height="47" alt="Powered by BGG" loading="lazy"></a>
+  <p style="margin:8px 0 0">Game data, ratings and the hot list from <a href="https://boardgamegeek.com" target="_blank" rel="noopener" style="color:inherit">BoardGameGeek</a>. Prices from the shops' own sites, checked nightly. Not affiliated with BoardGameGeek or any shop. Non-commercial.</p>
+</footer>
+</body>
+</html>

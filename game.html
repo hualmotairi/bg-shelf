@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game · Board Game Shelf</title>
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="icons/site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Same tokens as the gallery. Chart series colours: validated categorical palette (dataviz skill), fixed per retailer. */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --ink:#18212b; --muted:#5d6b7a; --line:#d5dce4; --grid:#e8ecf0; --art:#e4e8ed;
+  --accent:#1f5fd1; --accent-ink:#ffffff; --good:#1d7a46; --good-bg:#e1f3e8;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
+  --display:"Bricolage Grotesque",system-ui,sans-serif; --body:"Inter",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#11161c; --surface:#1a222b; --ink:#e7edf3; --muted:#93a1b0; --line:#2b3642; --grid:#24303b; --art:#232d38;
+  --accent:#6f9bff; --accent-ink:#0b1220; --good:#6fd49b; --good-bg:#16301f;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--body)}
+a{color:var(--accent)}
+.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:10px max(16px,4vw);display:flex;gap:12px;align-items:center}
+.top a{font-weight:600;text-decoration:none}
+.wrap{display:block;max-width:1100px;margin:0 auto;padding:20px max(16px,4vw) 48px}
+.hero{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:720px){.hero{grid-template-columns:minmax(0,1fr)}}
+.art{position:relative;aspect-ratio:1/1;background:var(--art);border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+.art .bk{position:absolute;inset:-12%;width:124%;height:124%;object-fit:cover;filter:blur(18px) saturate(1.2);opacity:.55}
+.art .fg{position:absolute;inset:6%;width:88%;height:88%;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.25))}
+.art img{color:transparent;font-size:0}
+.brand{font:600 11px var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+h1{font:800 clamp(24px,3.6vw,36px)/1.15 var(--display);margin:4px 0 12px;overflow-wrap:anywhere}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin:0 0 14px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.stat .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.stat .v{font:600 17px var(--mono);font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 12px}
+.chips span{font:500 11px/1.3 var(--body);background:var(--art);border:1px solid var(--line);border-radius:5px;padding:2px 6px}
+.links{display:flex;flex-wrap:wrap;gap:8px}
+.btn{display:inline-block;text-decoration:none;font:500 13px var(--body);padding:7px 12px;border-radius:7px;border:1px solid var(--line);color:var(--ink);background:var(--surface)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+section{margin-top:28px}
+h2{font:700 19px var(--display);margin:0 0 10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.tbl{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.tbl th{font:600 11px var(--body);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.tbl td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .num{text-align:right;font-family:var(--mono)}
+.tbl s{color:var(--muted)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.best{font:600 11px var(--body);color:var(--good);background:var(--good-bg);border-radius:5px;padding:1px 6px;margin-left:6px;white-space:nowrap}
+.scroll{overflow-x:auto}
+.note{color:var(--muted);font-size:12.5px;margin:8px 0 0}
+/* chart */
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0 0 6px;font-size:12.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:14px;height:2px;border-radius:2px;display:inline-block}
+.chart{position:relative}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .ax{font:11px var(--body);fill:var(--muted)}
+.chart .gl{stroke:var(--grid);stroke-width:1}
+.chart .lbl{font:600 11px var(--body);fill:var(--ink)}
+.chart:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:6px}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:7px 9px;font-size:12px;white-space:nowrap;z-index:3}
+.tip b{font-family:var(--mono);font-weight:500}
+.tip .d{color:var(--muted);margin-bottom:3px}
+details{margin-top:10px}
+summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:13px}
+.empty{color:var(--muted);text-align:center;padding:40px 0}
+.mmeta{display:none}
+.mono{font-family:var(--mono);font-weight:500}
+.olist{display:flex;flex-direction:column}
+.orow{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;padding:9px 0;border-bottom:1px solid var(--line)}
+.orow:last-child{border-bottom:0}
+.orow .op{font:500 16px var(--mono);min-width:80px}
+.orow .od{flex:1 1 160px;color:var(--muted);font-size:12.5px}
+.orow .btn{margin-left:auto}
+#other{scroll-margin-top:60px}
+/* phone: each offer becomes a stacked block (no sideways scrolling) */
+@media (max-width:600px){
+  .offers thead{display:none}
+  .offers,.offers tbody{display:block}
+  .offers tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:12px 2px;border-bottom:1px solid var(--line)}
+  .offers tr:last-child{border-bottom:0}
+  .offers td{display:block;padding:0;border:0}
+  .offers .ret{grid-column:1;grid-row:1/3;font-weight:600}
+  .offers .mmeta{display:block;font-weight:400;font-size:12px;color:var(--muted);margin-top:2px}
+  .offers .p{grid-column:2;grid-row:1;font-size:18px}
+  .offers .k{grid-column:2;grid-row:2;font-size:12px;color:var(--muted)}
+  .offers .rrp,.offers .off{display:none}
+  .offers .buy{grid-column:1/-1;margin-top:8px}
+  .offers .buy .btn{display:block;text-align:center;padding:10px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tbl th,.tbl td{padding:8px 6px}
+}
+/* related strips: swipe sideways on phones */
+.relg{margin-bottom:18px}
+.relg h3{font:600 14px var(--body);margin:0 0 8px}
+.relg h3 span{color:var(--muted);font-weight:500}
+.strip{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 2px 10px;overscroll-behavior-x:contain}
+.mini{flex:0 0 148px;scroll-snap-align:start;display:flex;flex-direction:column;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px;text-decoration:none;color:var(--ink);position:relative}
+.mini:hover{border-color:var(--accent)}
+.mart{aspect-ratio:1/1;background:var(--art);border-radius:7px;overflow:hidden;display:block}
+.mart img{width:100%;height:100%;object-fit:contain}
+.mname{font:600 13px/1.3 var(--display);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.6em}
+.mprice{font:500 13px var(--mono)}
+.mprice em{font:400 11px var(--body);color:var(--muted);font-style:normal;display:block}
+.mty{position:absolute;top:12px;left:12px;font:600 10px var(--body);text-transform:uppercase;letter-spacing:.04em;background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+/* Motion: page transition (box art shared with the gallery card), shimmer while images load, fade in */
+@view-transition{navigation:auto}
+::view-transition-group(*){animation-duration:.3s;animation-timing-function:cubic-bezier(.2,.8,.2,1)}
+.hero .art{view-transition-name:art}
+.art::before,.mart::before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,color-mix(in srgb,var(--surface) 60%,transparent) 50%,transparent 70%) var(--art);background-size:200% 100%;animation:shimmer 1.3s linear infinite}
+.mart{position:relative}
+.art.ld::before,.art.noimg::before,.mart.ld::before,.mart:empty::before{display:none}
+.art img,.mart img{transition:opacity .3s;position:relative}
+.art:not(.ld) img,.mart:not(.ld) img{opacity:0}
+.art .bk,.art .fg{position:absolute}
+@keyframes shimmer{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){@view-transition{navigation:none} .art::before,.mart::before{animation:none} .art img,.mart img{transition:none}}
+.mini.more{justify-content:center;align-items:center;text-align:center;color:var(--accent);font-weight:600}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+<script>
+/* Price views (owner, 27 Nov 2026). Owner's copy: GBP + KWD at the mid-market rate (what he really pays, paying in GBP).
+   Public site: KWD only; a shop that prices in KD itself (MM via Global-e) shows its own KD (rate x GBP, rounded up per range).
+   publish_site.py turns PUBLIC_SITE on in the public copy only. */
+window.PUBLIC_SITE=true;
+window.kdShelf=function(gbp,shop,M){var t=window.PUBLIC_SITE&&M.shopKd&&M.shopKd[shop];if(!t)return gbp*M.rate;
+  var x=Math.round(gbp*t.rate*1e6)/1e6,st=(t.steps.find(function(s){return s[0]<=x&&x<s[1];})||[0,0,1])[2];return Math.ceil(x/st-1e-9)*st;};
+</script>
+</head>
+<body>
+<div class="top"><a href="boardgame_gallery.html" id="back">← All games</a></div>
+<div class="wrap" id="app"><p class="empty">Loading…</p></div>
+<script>
+const app=document.getElementById("app");
+document.addEventListener("load",e=>{const im=e.target; if(!(im instanceof HTMLImageElement)) return; const b=im.closest(".art,.mart"); if(b&&(im.classList.contains("fg")||b.classList.contains("mart"))) b.classList.add("ld");},true);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+// Right-sized images (same rules as the gallery): Shopify resizes on request + serves WebP; others as-is
+const SHOP=/\/\/cdn\.shopify\.com\//;
+const sized=(u,w)=>u&&SHOP.test(u)?u+(u.includes("?")?"&":"?")+"width="+w:(u||"");
+const srcset=(u,sizes)=>u&&SHOP.test(u)?`srcset="${[320,480,800].map(w=>esc(sized(u,w))+" "+w+"w").join(", ")}" sizes="${sizes}"`:"";
+const fail=m=>{app.innerHTML=`<p class="empty">${m}</p>`; throw new Error(m);};
+const id=new URLSearchParams(location.search).get("id")||"";
+// Load only this game's data file: g/<shard>.js (~40 games). Same FNV-1a hash as build_gallery.py.
+function shard(s){let h=0x811c9dc5; for(const b of new TextEncoder().encode(s)){h^=b; h=Math.imul(h,0x01000193)>>>0;} return (h%256).toString(16).padStart(2,"0");}
+const sc=document.createElement("script"); sc.src=`g/${shard(id)}.js?v=202611280627`;
+sc.onload=()=>start(); sc.onerror=()=>fail(`Game "${esc(id)}" not found. It may have sold out since this link was made. <a href="boardgame_gallery.html">Back to all games</a>`);
+document.head.appendChild(sc);
+function start(){
+const META=SHARD.meta, RET=SHARD.retailers;
+const g=SHARD.games[id] || fail(`Game "${esc(id)}" not found. It may have sold out since this link was made. <a href="boardgame_gallery.html">Back to all games</a>`);
+const H=g.h||{};
+if(document.referrer && new URL(document.referrer).pathname.endsWith("boardgame_gallery.html")) document.getElementById("back").onclick=e=>{e.preventDefault(); history.back();};
+document.title=`${g.name} · Board Game Shelf`;
+// fixed colour per retailer (colour follows the entity, never its rank)
+const SERIES={"Zatu Games":"var(--s1)","Magic Madhouse":"var(--s2)"}; const SPARE=["var(--s3)"];
+RET.forEach(r=>{if(!SERIES[r.name]) SERIES[r.name]=SPARE.shift()||"var(--muted)";});
+const PUB=window.PUBLIC_SITE===true;
+const kdN=(v,r)=>window.kdShelf(v,r,META);
+const gbp=v=>PUB?`KD ${(v*META.rate).toFixed(3)}`:`£${v.toFixed(2)}`, kwd=v=>`KD ${(v*META.rate).toFixed(3)}`;
+const P=(v,r)=>PUB?`KD ${kdN(v,r).toFixed(3)}`:gbp(v);
+const offers=g.offers.slice().sort((a,b)=>(PUB?kdN(a.gbp,a.r)-kdN(b.gbp,b.r):0)||a.gbp-b.gbp); const best=offers[0];
+const imgs=[...offers.map(o=>o.img),g.bimg].filter(Boolean);
+const TYPES={g:"Game",e:"Expansion",a:"Accessory"};
+const nm=encodeURIComponent(g.name);
+// Other UK shops: BoardGamePrices.co.uk API data (terms: link back, send users via their links; store names not provided)
+function otherShops(){
+  const b=g.bgp, search=`<a class="btn" href="https://boardgameprices.co.uk/item/search?search=${nm}" target="_blank" rel="noopener">Search BoardGamePrices.co.uk</a>
+    <a class="btn" href="https://www.boardgameoracle.com/en-GB/boardgame/search?q=${nm}" target="_blank" rel="noopener">Search Board Game Oracle</a>`;
+  if(!b||!b.offers.length) return `<p class="note" style="margin:0 0 10px">${b?"No UK shop has it in stock on BoardGamePrices.co.uk right now.":g.mv?"The exact BGG version is unconfirmed, so no automatic price lookup.":"Not matched on BGG, so no automatic price lookup."} Search by name:</p><div class="links">${b?`<a class="btn" href="${esc(b.url)}" target="_blank" rel="noopener">See it on BoardGamePrices.co.uk</a>`:search}</div>`;
+  // Our prices = what a Kuwait buyer pays (Zatu: UK VAT removed; Magic Madhouse via Global-e: VAT kept, both verified 21 Nov 2026).
+  // Other shops' UK prices include 20% VAT; whether they drop it for export is unknown, so show both cases.
+  // Compare product prices only (UK delivery doesn't apply to Kuwait).
+  const low=b.offers[0].p, inc=Math.min(...b.offers.map(o=>o.prod)), exv=inc/1.2, ours=best.gbp;
+  const verdict=exv>=ours-0.5?`more than ours (${gbp(ours)}) either way`:inc<=ours+0.5?`<b>less than ours (${gbp(ours)}) either way</b>`:`less than ours (${gbp(ours)}) only if the shop removes UK VAT for export`;
+  return `<p style="margin:0 0 10px">Cheapest elsewhere: <b class="mono">${gbp(low)}</b> incl. UK delivery. Product price <b class="mono">${gbp(inc)}</b> with VAT, about <b class="mono">${gbp(exv)}</b> if the shop removes VAT for export: ${verdict}. ${b.n_uk} UK shop${b.n_uk>1?"s":""} in stock.</p>
+    <div class="olist">${b.offers.map(o=>`<div class="orow"><span class="op">${gbp(o.p)}</span>
+      <span class="od">${gbp(o.prod)} + ${o.sk?(o.ship?gbp(o.ship)+" delivery":"free delivery"):"delivery unknown"}</span>
+      <a class="btn" href="${esc(o.link)}" target="_blank" rel="noopener">View offer</a></div>`).join("")}</div>
+    <div class="links" style="margin-top:10px"><a class="btn" href="${esc(b.url)}" target="_blank" rel="noopener">All ${b.n_uk} offers</a>
+      <a class="btn" href="https://www.boardgameoracle.com/en-GB/boardgame/search?q=${nm}" target="_blank" rel="noopener">Search Board Game Oracle</a></div>
+    <p class="note">Prices from <a href="https://boardgameprices.co.uk" target="_blank" rel="noopener">BoardGamePrices.co.uk</a>${META.bgpDate?`, fetched ${esc(META.bgpDate)}`:""}. Totals include UK VAT and delivery to a UK address. "Where to buy" shows what a Kuwait buyer pays: Zatu removes UK VAT, Magic Madhouse doesn't; other shops vary. These shops may not ship to Kuwait, and the list can include ${RET.map(r=>esc(r.name)).join(" and ")}. Shop names show on the offer page.</p>`;
+}
+
+app.innerHTML=`
+<div class="hero">
+  <div class="art" data-imgs="${esc(imgs.join("|"))}">
+    <img class="bk" src="${esc(sized(imgs[0],800))}" ${srcset(imgs[0],"(max-width:720px) 92vw, 340px")} alt="" aria-hidden="true" decoding="async"><img class="fg" src="${esc(sized(imgs[0],800))}" ${srcset(imgs[0],"(max-width:720px) 92vw, 340px")} alt="${esc(g.name)} box art" fetchpriority="high">
+  </div>
+  <div>
+    <div class="brand">${esc(best.brand)} · ${TYPES[g.ty]||"Game"}</div>
+    <h1>${esc(g.name)}</h1>
+    <div class="stats">
+      <div class="stat"><div class="k">Best price</div><div class="v">${P(best.gbp,best.r)}</div><div class="note" style="margin:0">${PUB?esc(best.r):kwd(best.gbp)}</div></div>
+      ${g.bgg?`<div class="stat"><div class="k">BGG rating</div><div class="v">${g.avg?g.avg.toFixed(1):"—"}</div><div class="note" style="margin:0">${(g.ur||0).toLocaleString()} votes</div></div>
+      ${g.w?`<div class="stat"><div class="k">Weight</div><div class="v">${g.w.toFixed(1)}<span class="note"> / 5</span></div></div>`:""}
+      ${g.pl?`<div class="stat"><div class="k">Players</div><div class="v">${esc(g.pl)}</div></div>`:""}`:`<div class="stat"><div class="k">BGG</div><div class="v" style="font-size:13px">${g.mv?"Version unconfirmed":"Not matched"}</div></div>`}
+    </div>
+    ${g.vers&&g.vers.length?`<div class="note" id="versions" style="margin:0 0 12px"><b>${g.mv>1?"BGG has several possible versions.":"Possible BGG match."}</b> We can't confirm which one ${esc(best.r)} sells, so no BGG rating is shown. Check the shop listing against:
+      ${g.vers.map(v=>`<a href="https://boardgamegeek.com/boardgame/${encodeURIComponent(v.id)}" target="_blank" rel="noopener">${esc(v.n)}${v.y&&v.y!=="0"?` (${esc(v.y)})`:""}</a>`).join(" · ")}${g.mv>g.vers.length?` · +${g.mv-g.vers.length} more`:""}</div>`:""}
+    ${g.m&&g.m.length?`<div class="chips" aria-label="Mechanics">${g.m.map(m=>`<span>${esc(m)}</span>`).join("")}</div>`:""}
+    <div class="links">
+      <a class="btn primary" href="${esc(best.link)}" target="_blank" rel="noopener">Buy at ${esc(best.r)}</a>
+      <a class="btn" href="${g.bgg?`https://boardgamegeek.com/boardgame/${g.bgg}`:`https://boardgamegeek.com/geeksearch.php?action=search&objecttype=boardgame&q=${nm}`}" target="_blank" rel="noopener">BoardGameGeek</a>
+      <a class="btn" href="#other">Other UK shops</a>
+    </div>
+  </div>
+</div>
+
+<section>
+  <h2>Where to buy</h2>
+  <div class="card"><table class="tbl offers">
+    <thead><tr><th>Retailer</th><th class="num">Price</th>${PUB?"":'<th class="num">KWD</th>'}<th class="num">RRP</th><th class="num">Off RRP</th><th></th></tr></thead>
+    <tbody>${offers.map((o,i)=>`<tr>
+      <td class="ret"><span class="dot" style="background:${SERIES[o.r]}"></span>${esc(o.r)}${i===0&&offers.length>1?`<span class="best">Cheapest</span>`:""}
+        <div class="mmeta">${o.rrp?`RRP <s>${P(o.rrp,o.r)}</s>`:""}${o.disc>0?` · −${o.disc}%`:""}</div></td>
+      <td class="num p">${P(o.gbp,o.r)}</td>${PUB?"":`<td class="num k">${kwd(o.gbp)}</td>`}
+      <td class="num rrp">${o.rrp?`<s>${P(o.rrp,o.r)}</s>`:"—"}</td><td class="num off">${o.disc>0?`−${o.disc}%`:"—"}</td>
+      <td class="buy"><a class="btn" href="${esc(o.link)}" target="_blank" rel="noopener">Buy</a></td></tr>`).join("")}</tbody>
+  </table></div>
+  <p class="note">In stock at the last scrape (${RET.map(r=>`${esc(r.name)} ${esc(r.scraped)}`).join(", ")}). ${PUB?`Prices in KD: ${RET.map(r=>META.shopKd&&META.shopKd[r.name]?`${esc(r.name)} as shown by the shop`:`${esc(r.name)} charges in GBP, shown at £1 = KD ${META.rate}`).join("; ")}.`:`KWD at £1 = KD ${META.rate} (${esc(META.rateSrc)}, ${esc(META.rateDate)}).`}${offers.length<RET.length?` Not stocked by ${RET.filter(r=>!offers.some(o=>o.r===r.name)).map(r=>esc(r.name)).join(", ")}.`:""}</p>
+</section>
+
+<section id="other">
+  <h2>Other UK shops</h2>
+  <div class="card">${otherShops()}</div>
+</section>
+
+<section>
+  <h2>Price history</h2>
+  <div class="card" id="hist"></div>
+</section>`;
+
+// image fallback: retailer images, then BGG, then nothing
+const art=app.querySelector(".art"), fg=art.querySelector(".fg");
+fg.addEventListener("error",()=>{const l=art.dataset.imgs.split("|").filter(Boolean), i=+(art.dataset.i||0)+1;
+  if(i<l.length){art.dataset.i=i; art.querySelectorAll("img").forEach(x=>{x.removeAttribute("srcset"); x.src=sized(l[i],800);});} else {art.querySelector(".bk").remove(); fg.removeAttribute("srcset"); fg.removeAttribute("src"); fg.alt="No image"; art.classList.add("noimg");}});
+
+// ---- price history -------------------------------------------------------
+const box=document.getElementById("hist");
+const end={}; RET.forEach(r=>end[r.name]=r.scraped);          // each line runs to that retailer's latest scrape
+const series=offers.map(o=>({r:o.r,c:SERIES[o.r],pts:(H[o.link]||[]).map(([d,p,s])=>({d,p:PUB&&p!=null?kdN(p,o.r)/META.rate:p,s}))})).filter(s=>s.pts.length);
+if(!series.length){box.innerHTML='<p class="empty">No price history for this listing yet.</p>';}
+else{
+  const day=d=>Date.parse(d+"T00:00:00Z"), DAY=864e5;
+  const fmt=t=>new Date(t).toLocaleDateString("en-GB",{day:"numeric",month:"short",timeZone:"UTC"});
+  const allP=series.flatMap(s=>s.pts.filter(p=>p.p!=null).map(p=>p.p));
+  const t0=Math.min(...series.map(s=>day(s.pts[0].d))), t1=Math.max(...series.map(s=>day(end[s.r]||s.pts.at(-1).d)));
+  const lo=Math.min(...allP), hi=Math.max(...allP);
+  const lowPt=series.flatMap(s=>s.pts.filter(p=>p.p===lo).map(p=>({...p,r:s.r})))[0];
+  const days=Math.round((t1-t0)/DAY)+1;
+  // value of a series on a given day (step-after); null = not listed / before first record
+  const valAt=(s,t)=>{let v; for(const p of s.pts){if(day(p.d)<=t) v=p; else break;} return v&&t<=day(end[s.r]||s.pts.at(-1).d)?v:null;};
+  box.innerHTML=`
+    <div class="stats" style="margin-bottom:10px">
+      <div class="stat"><div class="k">Lowest seen</div><div class="v">${gbp(lo)}</div><div class="note" style="margin:0">${esc(lowPt.r)}, ${fmt(day(lowPt.d))}</div></div>
+      <div class="stat"><div class="k">Highest seen</div><div class="v">${gbp(hi)}</div></div>
+      <div class="stat"><div class="k">Now vs lowest</div><div class="v">${best.gbp<=lo+0.005?"At low":"+"+((best.gbp/lo-1)*100).toFixed(0)+"%"}</div></div>
+      <div class="stat"><div class="k">Tracked</div><div class="v">${days} day${days>1?"s":""}</div><div class="note" style="margin:0">since ${fmt(t0)}</div></div>
+    </div>
+    ${series.length>1?`<div class="legend">${series.map(s=>`<span><i style="background:${s.c}"></i>${esc(s.r)}</span>`).join("")}</div>`:`<div class="legend"><span><i style="background:${series[0].c}"></i>${esc(series[0].r)} (GBP)</span></div>`}
+    <div class="chart" tabindex="0" role="img" aria-label="Price history chart; use the arrow keys to read values, or open the table below"></div>
+    <p class="note">${days<7?"History started on 20 Nov 2026 and grows with every daily scrape, so the chart fills in over the coming days. ":""}${PUB?"Prices in KD (Magic Madhouse at its own KD conversion, today’s rate)":"Prices in GBP as scraped"}; gaps = not listed. Moves under 2% are often storefront rounding.</p>
+    <details><summary>Show as table</summary><div class="scroll"><table class="tbl" style="margin-top:6px">
+      <thead><tr><th>Date</th><th>Retailer</th><th class="num">Price</th><th>Status</th></tr></thead>
+      <tbody>${series.flatMap(s=>s.pts.map(p=>({...p,r:s.r}))).sort((a,b)=>b.d.localeCompare(a.d)||a.r.localeCompare(b.r)).map(p=>`<tr><td>${fmt(day(p.d))}</td><td>${esc(p.r)}</td><td class="num">${p.p!=null?gbp(p.p):"—"}</td><td>${esc(p.s)}</td></tr>`).join("")}</tbody>
+    </table></div></details>`;
+  const el=box.querySelector(".chart");
+  let hover=null;
+  function draw(){
+    const W=Math.max(280,el.clientWidth), Hh=W<500?200:260, m={l:52,r:W<500?12:110,t:12,b:26};
+    // round axis steps (1, 2, 2.5, 5 × 10^k), about 4 gridlines
+    const pad=Math.max((hi-lo)*0.15, hi*0.03, 0.5), raw=(hi-lo+2*pad)/3, mag=10**Math.floor(Math.log10(raw));
+    const step=[1,2,2.5,5,10].map(k=>k*mag).find(s=>s>=raw);
+    const y0=Math.max(0,Math.floor((lo-pad)/step)*step), y1=Math.ceil((hi+pad)/step)*step;
+    const span=Math.max(t1-t0,DAY);
+    const X=t=>m.l+(t-t0)/span*(W-m.l-m.r), Y=v=>m.t+(1-(v-y0)/(y1-y0))*(Hh-m.t-m.b);
+    const ticks=[]; for(let v=y0; v<=y1+step/2; v+=step) ticks.push(v);
+    const nx=Math.min(days,W<500?3:6); const xt=[...new Set(Array.from({length:nx},(_,i)=>Math.round((i/(Math.max(nx-1,1)))*(days-1))))].map(i=>t0+i*DAY);
+    let svg=`<svg viewBox="0 0 ${W} ${Hh}" aria-hidden="true">`;
+    ticks.forEach(v=>svg+=`<line class="gl" x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}"/><text class="ax" x="${m.l-8}" y="${Y(v)+4}" text-anchor="end">${PUB?`KD ${(v*META.rate).toFixed(v*META.rate<10?1:0)}`:`£${Number.isInteger(+v.toFixed(2))?v.toFixed(0):v.toFixed(2)}`}</text>`);
+    xt.forEach(t=>svg+=`<text class="ax" x="${X(t)}" y="${Hh-6}" text-anchor="middle">${fmt(t)}</text>`);
+    series.forEach(s=>{ // step-after path, broken where not listed
+      const tEnd=day(end[s.r]||s.pts.at(-1).d); let d="", open=false;
+      s.pts.forEach((p,i)=>{const ta=day(p.d), tb=i+1<s.pts.length?day(s.pts[i+1].d):tEnd;
+        if(p.p==null){open=false; return;}
+        d+=(open?`L${X(ta)},${Y(p.p)}`:`M${X(ta)},${Y(p.p)}`)+`L${X(Math.max(tb,ta))},${Y(p.p)}`; open=true;});
+      svg+=`<path d="${d}" fill="none" stroke="${s.c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+      s.pts.forEach(p=>{if(p.p!=null) svg+=`<circle cx="${X(day(p.d))}" cy="${Y(p.p)}" r="4" fill="${s.c}" stroke="var(--surface)" stroke-width="2"/>`;});
+      const last=valAt(s,tEnd); if(last&&last.p!=null&&W>=500) svg+=`<text class="lbl" x="${X(tEnd)+8}" y="${Y(last.p)+4}">${esc(s.r.split(" ")[0])} ${gbp(last.p)}</text>`;
+    });
+    if(hover!=null){const hx=X(hover); svg+=`<line x1="${hx}" x2="${hx}" y1="${m.t}" y2="${Hh-m.b}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/>`;
+      series.forEach(s=>{const v=valAt(s,hover); if(v&&v.p!=null) svg+=`<circle cx="${hx}" cy="${Y(v.p)}" r="5" fill="${s.c}" stroke="var(--surface)" stroke-width="2"/>`;});}
+    svg+=`</svg>`;
+    let tip="";
+    if(hover!=null){const rows=series.map(s=>{const v=valAt(s,hover); return `<div><span class="dot" style="background:${s.c}"></span>${esc(s.r)} <b>${v&&v.p!=null?gbp(v.p):"not listed"}</b></div>`;}).join("");
+      const left=Math.min(Math.max(X(hover)+12,0),W-190); tip=`<div class="tip" style="left:${left}px;top:${m.t}px"><div class="d">${fmt(hover)}</div>${rows}</div>`;}
+    el.innerHTML=svg+tip;
+    el._X=X; el._W=W; el._m=m;
+  }
+  const snap=t=>Math.min(t1,Math.max(t0,t0+Math.round((t-t0)/DAY)*DAY));
+  el.addEventListener("pointermove",e=>{const r=el.getBoundingClientRect(), x=(e.clientX-r.left)*(el._W/r.width), m=el._m;
+    const t=t0+(x-m.l)/(el._W-m.l-m.r)*Math.max(t1-t0,DAY); hover=snap(t); draw();});
+  el.addEventListener("pointerleave",()=>{hover=null; draw();});
+  el.addEventListener("keydown",e=>{if(e.key!=="ArrowLeft"&&e.key!=="ArrowRight") return; e.preventDefault();
+    hover=snap((hover??t1)+(e.key==="ArrowRight"?DAY:-DAY)); draw();});
+  el.addEventListener("blur",()=>{hover=null; draw();});
+  draw(); new ResizeObserver(()=>draw()).observe(el);
+}
+
+// ---- related games (pre-computed at build time; only games buyable now) ----
+const REL=[["base","Base game"],["exp","Expansions"],["ver","Other versions & listings"],["int","Works with"],["ser",g.bgg?"Same series":"Similar titles"],["acc","Accessories & upgrades"]];
+const rel=g.rel||{}, relHtml=REL.filter(([k])=>rel[k]&&rel[k].length).map(([k,label])=>{const items=rel[k], more=items.at(-1).more||0, list=items.filter(x=>!x.more);
+  return `<div class="relg"><h3>${label} <span>${list.length+more}</span></h3><div class="strip">${list.map(x=>`
+    <a class="mini" href="game.html?id=${encodeURIComponent(x.id)}">
+      <span class="mart">${x.img?`<img src="${esc(sized(x.img,320))}" alt="" loading="lazy" decoding="async" onerror="this.remove()">`:""}</span>
+      <span class="mname">${esc(x.name)}</span>
+      <span class="mprice">${P(x.gbp,x.r)} <em>${esc(x.r)}</em></span>
+      ${x.ty!=="g"?`<span class="mty">${TYPES[x.ty]}</span>`:""}
+    </a>`).join("")}${more?`<a class="mini more" href="https://boardgamegeek.com/boardgame/${g.bgg}" target="_blank" rel="noopener">+${more} more<br>on BGG</a>`:""}</div></div>`;}).join("");
+if(relHtml) app.insertAdjacentHTML("beforeend",`<section><h2>Related, in stock now</h2>${relHtml}</section>`);
+}
+</script>
+<footer style="margin:32px auto 24px;padding:0 16px;max-width:900px;text-align:center;font-size:12px;color:var(--muted)">
+  <a href="https://boardgamegeek.com" target="_blank" rel="noopener" style="display:inline-block;background:#fff;border-radius:6px;padding:4px 8px"><img src="https://cf.geekdo-images.com/HZy35cmzmmyV9BarSuk6ug__small/img/gbE7sulIurZE_Tx8EQJXnZSKI6w=/fit-in/200x150/filters:strip_icc()/pic7779581.png" width="160" height="47" alt="Powered by BGG" loading="lazy"></a>
+  <p style="margin:8px 0 0">Game data, ratings and the hot list from <a href="https://boardgamegeek.com" target="_blank" rel="noopener" style="color:inherit">BoardGameGeek</a>. Prices from the shops' own sites, checked nightly. Not affiliated with BoardGameGeek or any shop. Non-commercial.</p>
+</footer>
+</body>
+</html>
